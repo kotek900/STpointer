@@ -61,6 +61,7 @@ private:
 
 	bool isTree() {
 		if (pointer == nullptr) return false;
+		if (pointer->referencesToThis.size() == 0) return false;
 		if ((void*)(pointer->referencesToThis[0]) == (void*)this) return true;
 		else return false;
 	}
@@ -88,6 +89,13 @@ private:
 		if (pointer) pointer->addReferenceToThis((STpointer<STnode>*)this);
 		if (this->pointer) this->unset();
 		this->pointer = pointer;
+	}
+
+	void deleteObject() {
+		pointer->referencesToThis.clear();
+		STnode * toDelete = pointer;
+		this->pointer = nullptr;
+		delete toDelete;
 	}
 
 	template<typename U>
@@ -125,13 +133,7 @@ public:
 	STpointer &operator=(const STpointer &other) {
 		if (this == nullptr) return *this;
 		if (&other==nullptr) {
-			this->pointer = nullptr;
-			if (this->pointer->referencesToThis.size() == 0) {
-				delete pointer;
-				return *this;
-			}
-			if (!parent->referencesToThis[0]->loopsTo(parent)) return *this;
-			if (parent->referencesToThis[0]->unloop(parent)) delete pointer;
+			unset();
 			return *this;
 		}
 		setPointer(other.pointer);
@@ -164,16 +166,21 @@ public:
 		this->pointer->removeReferenceToThis((STpointer<STnode>*)this);
 		if (tree == false) goto reset;
 		if (this->pointer->referencesToThis.size() == 0) {
-			delete pointer;
-			goto reset;
+			deleteObject();
+			return;
 		}
 		if (parent == nullptr) {
-			if (pointer->referencesToThis[0]->loopsTo(pointer)) goto reset;
-			if (pointer->referencesToThis[0]->unloop(pointer)) delete pointer;
-			goto reset;
+			if (!pointer->referencesToThis[0]->loopsTo(pointer)) goto reset;
+			if (pointer->referencesToThis[0]->unloop(pointer)) {
+				deleteObject();
+			}
+			return;
 		}
 		if (!parent->referencesToThis[0]->loopsTo(parent)) goto reset;
-		if (parent->referencesToThis[0]->unloop(parent)) delete pointer;
+		if (parent->referencesToThis[0]->unloop(parent)) {
+			deleteObject();
+			return;
+		}
 		reset:
 		this->pointer = nullptr;
 	}
