@@ -92,8 +92,8 @@ private:
 	}
 
 	void deleteObject() {
-		pointer->referencesToThis.clear();
 		STnode * toDelete = pointer;
+		pointer->referencesToThis.clear();
 		this->pointer = nullptr;
 		delete toDelete;
 	}
@@ -169,18 +169,11 @@ public:
 			deleteObject();
 			return;
 		}
-		if (parent == nullptr) {
-			if (!pointer->referencesToThis[0]->loopsTo(pointer)) goto reset;
-			if (pointer->referencesToThis[0]->unloop(pointer)) {
-				deleteObject();
-			}
-			return;
-		}
-		if (!parent->referencesToThis[0]->loopsTo(parent)) goto reset;
-		if (parent->referencesToThis[0]->unloop(parent)) {
+		if (!pointer->referencesToThis[0]->loopsTo(pointer)) goto reset;
+		if (pointer->referencesToThis[0]->unloop(pointer)) {
 			deleteObject();
-			return;
 		}
+		return;
 		reset:
 		this->pointer = nullptr;
 	}
