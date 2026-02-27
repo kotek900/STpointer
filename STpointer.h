@@ -21,7 +21,6 @@ const bool NEW = true;
 #endif
 
 #include <vector>
-#include <iostream>
 
 template <typename T>
 class STpointer;
@@ -33,12 +32,10 @@ private:
 	STnode(const STnode&) = delete;
 
 	void addReferenceToThis(STpointer<STnode>* pointer) {
-		std::cout << "ADD\n";
 		this->referencesToThis.push_back(pointer);
 	}
 
 	void removeReferenceToThis(STpointer<STnode>* pointer) {
-		std::cout << "REMOVE\n";
 		for (int i = 0; i < this->referencesToThis.size(); i++) {
 			if (this->referencesToThis[i] != pointer) continue;
 			this->referencesToThis.erase(this->referencesToThis.begin() + i);
