@@ -1,5 +1,7 @@
 # About
-STpointer is a library to automatically manage your memory, it automatically handles reference loops and frees memory as soon as possible
+STpointer is a library to automatically manage your memory, it automatically handles circular references and frees memory as soon as possible.
+When using the STpointer library every object has exactly one special (automatically assigned) pointer which will trigger local garbage collection if deleted, the rest will not perform checks. Local garbage collection will not check unrelated parts of memory. 
+This library manages memory 100% automatically.
 
 # Usage
 1. Download STpointer.h and add it to your project
