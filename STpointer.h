@@ -11,6 +11,7 @@
 // this - pointer to the parent object (extends STnode)
 
 // see example usage in example.cpp on the github page
+// note: not thread safe
 
 #ifndef DISABLE_NEW_IN_STPOINTER
 #define ALLOW_NEW_IN_STPOINTER // delete this line if you don't want usage of STpointer<MyClass>(NEW, arg1, arg2)
@@ -28,8 +29,7 @@ class STpointer;
 class STnode {
 private:
 	std::vector<STpointer<STnode>*> referencesToThis;
-
-	STnode(const STnode&) = delete;
+	long loopID;
 
 	void addReferenceToThis(STpointer<STnode>* pointer) {
 		this->referencesToThis.push_back(pointer);
@@ -48,16 +48,25 @@ private:
 public:
 	STnode() {
 		referencesToThis = std::vector<STpointer<STnode>*>();
+		loopID = -1;
 	};
 
 	virtual ~STnode() {}
 };
+
+namespace STpoint {
+	long& loopCount() {
+		static long value = 0;
+		return value;
+	}
+}
 
 template <typename T>
 class STpointer {
 private:
 	STnode * pointer;
 	STnode * parent;
+
 
 	bool isTree() {
 		if (pointer == nullptr) return false;
@@ -69,20 +78,29 @@ private:
 	bool loopsTo(void * node) {
 		if (parent == nullptr) return false;
 		if (parent == node) return true;
+		if (parent->loopID == STpoint::loopCount()) return true;
+		if (parent->referencesToThis.size() == 0) return false;
 		return parent->referencesToThis[0]->loopsTo(node);
 	}
 
-	// returns true if loop should be deleted
+	// returns true if failed to unloop
 	bool unloop(void * stop) {
 		if (parent == stop) return true;
 		if (parent == nullptr) return false;
+		if (parent->loopID == STpoint::loopCount()) return true;
+		parent->loopID = STpoint::loopCount();
 		for (int i = 1; i < pointer->referencesToThis.size(); i++) {
-			if (!pointer->referencesToThis[i]->loopsTo(stop)) {
-				std::swap(pointer->referencesToThis[i], pointer->referencesToThis[0]);
-				return false;
-			}
+			if (pointer->referencesToThis[i]->loopsTo(stop)) continue;
+			std::swap(pointer->referencesToThis[i], pointer->referencesToThis[0]);
+			return false;
 		}
-		return parent->referencesToThis[0]->unloop(stop);
+		if (!parent->referencesToThis[0]->unloop(stop)) return false;
+		for (int i = 1; i < parent->referencesToThis.size(); i++) {
+			if (parent->referencesToThis[i]->unloop(stop)) continue;
+			std::swap(parent->referencesToThis[i], parent->referencesToThis[0]);
+			return false;
+		}
+		return true;
 	}
 
 	void setPointer(STnode * pointer) {
@@ -126,7 +144,7 @@ public:
 
 	STpointer(const STpointer& other) {
 		this->pointer = nullptr;
-		setPointer(other->pointer);
+		setPointer(other.pointer);
 		this->parent = nullptr;
 	}
 
@@ -170,6 +188,7 @@ public:
 			return;
 		}
 		if (!pointer->referencesToThis[0]->loopsTo(pointer)) goto reset;
+		STpoint::loopCount()++;
 		if (pointer->referencesToThis[0]->unloop(pointer)) {
 			deleteObject();
 		}
