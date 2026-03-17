@@ -7,6 +7,8 @@
 // use: STpointer<MyClass> object = STpointer<MyClass>(new MyClass(arg1, arg2))
 // or use: STpointer<MyClass> object = STpointer<MyClass>(NEW, arg1, arg2)
 
+// add #define STPOINTER_IMPLEMENTATION in exactly one C++ file before #include "STpointer.h"
+
 // for fields of type STpointer inside objects inside their constructor: field.setParent(this)
 // this - pointer to the parent object (extends STnode)
 
@@ -25,6 +27,10 @@ const bool NEW = true;
 
 template <typename T>
 class STpointer;
+
+namespace STpoint {
+	extern long loopCount;
+}
 
 class STnode {
 private:
@@ -54,12 +60,10 @@ public:
 	virtual ~STnode() {}
 };
 
-namespace STpoint {
-	long& loopCount() {
-		static long value = 0;
-		return value;
-	}
-}
+#ifdef STPOINTER_IMPLEMENTATION
+long STpoint::loopCount = 0;
+#undef STPOINTER_IMPLEMENTATION
+#endif
 
 template <typename T>
 class STpointer {
@@ -78,7 +82,7 @@ private:
 	bool loopsTo(void * node) {
 		if (parent == nullptr) return false;
 		if (parent == node) return true;
-		if (parent->loopID == STpoint::loopCount()) return true;
+		if (parent->loopID == STpoint::loopCount) return true;
 		if (parent->referencesToThis.size() == 0) return false;
 		return parent->referencesToThis[0]->loopsTo(node);
 	}
@@ -87,8 +91,8 @@ private:
 	bool unloop(void * stop) {
 		if (parent == stop) return true;
 		if (parent == nullptr) return false;
-		if (parent->loopID == STpoint::loopCount()) return true;
-		parent->loopID = STpoint::loopCount();
+		if (parent->loopID == STpoint::loopCount) return true;
+		parent->loopID = STpoint::loopCount;
 		for (int i = 1; i < pointer->referencesToThis.size(); i++) {
 			if (pointer->referencesToThis[i]->loopsTo(stop)) continue;
 			std::swap(pointer->referencesToThis[i], pointer->referencesToThis[0]);
@@ -188,7 +192,7 @@ public:
 			return;
 		}
 		if (!pointer->referencesToThis[0]->loopsTo(pointer)) goto reset;
-		STpoint::loopCount()++;
+		STpoint::loopCount++;
 		if (pointer->referencesToThis[0]->unloop(pointer)) {
 			deleteObject();
 		}

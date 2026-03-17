@@ -1,6 +1,7 @@
 #include <string>
 #include <iostream>
 
+#define STPOINTER_IMPLEMENTATION
 #include "STpointer.h"
 
 class MyClass : public STnode {
